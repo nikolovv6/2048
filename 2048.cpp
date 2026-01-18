@@ -1,12 +1,32 @@
 #include<iostream>
 #include <cstdlib>
+#include<ctime>
+#include<fstream>
 
 const int MAX_BOARD_SIZE=10;
 
 const int MAX_USERNAME_SIZE=101;
 
+void clearConsole()
+{
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
+}
+
+int calculateScore(int board[][MAX_BOARD_SIZE], int size) {
+    int sum = 0;
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            sum += board[i][j];
+        }
+    }
+    return sum;
+}
+
 void mainMenu() {
-    std::cout <<"           Welcome to...                \n";
     std::cout << " #####    #######    #    #    ####### \n";
     std::cout << "     #    #     #    #    #    #     # \n";
     std::cout << " #####    #     #    #######   ####### \n";
@@ -21,7 +41,7 @@ bool isSizeInputCorrect(int input) {
     return input>=4 && input<=10;
 }
 
-void printGame(int board[][MAX_BOARD_SIZE], size_t size) {
+void printBoard(int board[][MAX_BOARD_SIZE], size_t size) {
     for (int i = 0; i < size; ++i) {
         for (int k = 0; k < size * 7; ++k) {
             std::cout << "-";
@@ -46,6 +66,12 @@ void printGame(int board[][MAX_BOARD_SIZE], size_t size) {
         std::cout << "-";
     }
     std::cout <<std::endl;
+}
+
+void displayGame(int board[][MAX_BOARD_SIZE], int size) {
+    clearConsole();
+    printBoard(board, size);
+    std::cout << "Score: " << calculateScore(board, size) <<std::endl;
 }
 
 void clearBoard(int board[][MAX_BOARD_SIZE], size_t size) {
@@ -268,8 +294,42 @@ bool isMoved(char command,int board[][MAX_BOARD_SIZE],int size) {
     return moved;
 }
 
+bool hasMergeMoves(int board[][MAX_BOARD_SIZE], int size) {
+    for (int row = 0; row < size; row++) {
+        for (int col = 0; col < size - 1; col++) {
+            if (canMerge(board[row][col], board[row][col + 1])) {
+                return true;
+            }
+        }
+    }
+
+    for (int col = 0; col < size; col++) {
+        for (int row = 0; row < size - 1; row++) {
+            if (canMerge(board[row][col], board[row + 1][col])) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool hasEmptyCell(int board[][MAX_BOARD_SIZE], int size) {
+    return emptyCellsCount(board, size) > 0;
+}
+
+bool isGameOver(int board[][MAX_BOARD_SIZE], int size) {
+    if (hasEmptyCell(board, size))
+        return false;
+
+    if (hasMergeMoves(board, size))
+        return false;
+
+    return true;
+}
+
 void gameLoop(int board[][MAX_BOARD_SIZE], int size) {
-    printGame(board, size);
+    displayGame(board, size);
 
     while (true) {
         char command;
@@ -283,9 +343,14 @@ void gameLoop(int board[][MAX_BOARD_SIZE], int size) {
 
         if (moved) {
             addRandomTile(board, size);
-            printGame(board, size);
+            displayGame(board, size);
+            if (isGameOver(board, size)) {
+                std::cout << "GAME OVER!\n";
+                std::cout << "Final score:"<< calculateScore(board, size)<<std::endl;
+                break;
+            }
         } else {
-            std::cout << "Invalid move.\n";
+            std::cout << "Invalid move."<<std::endl;
         }
     }
 }
@@ -309,14 +374,14 @@ int main() {
           startGame();
       }
       else if (choice== 'l') {
-          std::cout<<"Showing leaderboard...";
+          std::cout<<"Showing leaderboard..."<<std::endl;
       }
       else if (choice== 'e') {
           std::cout<<"Exiting program...";
           break;
       }
       else {
-          std::cout<<"Invalid option! Please try again!";
+          std::cout<<"Invalid option! Please try again!"<<std::endl;
       }
   }
 }
