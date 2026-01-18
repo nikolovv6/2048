@@ -5,7 +5,188 @@
 
 const int MAX_BOARD_SIZE=10;
 
+const int MIN_BOARD_SIZE = 4;
+
+const int TOP_COUNT = 5;
+
+const char FILE_PREFIX[] = "leaderboard_";
+
+const char FILE_EXT[] = ".txt";
+
+const int MAX_RECORDS = 50;
+
+const int FILE_BUF = 64;
+
 const int MAX_USERNAME_SIZE=101;
+
+int mystrLen(const char* str) {
+    int len=0;
+    while (*str) {
+        len++;
+        str++;
+    }
+    return len;
+}
+
+void mystrCpy(char* str1,const char* str2) {
+    while (*str2) {
+        *str1=*str2;
+        str1++;
+        str2++;
+    }
+    *str1 = '\0';
+}
+
+void mystrCat(char* str1,const char* str2) {
+    while (*str1) {
+        str1++;
+    }
+    while (*str2) {
+        *str1=*str2;
+        str1++;
+        str2++;
+    }
+    *str1='\0';
+}
+
+void intToString(int num, char* str)
+{
+    if (num == 0)
+    {
+        str[0] = '0';
+        str[1] = '\0';
+        return;
+    }
+
+    int i = 0;
+    int tempNum = num;
+    while (tempNum > 0)
+    {
+        str[i++] = (tempNum % 10) + '0';
+        tempNum /= 10;
+    }
+    str[i] = '\0';
+
+    for (int j = 0; j < i / 2; j++)
+    {
+        char temp = str[j];
+        str[j] = str[i - 1 - j];
+        str[i - 1 - j] = temp;
+    }
+}
+
+void swap(int& a,int& b) {
+    a+=b;
+    b=a-b;
+    a-=b;
+}
+
+void swapName(char str1[], char str2[]) {
+    char tmp[MAX_USERNAME_SIZE];
+    mystrCpy(tmp, str1);
+    mystrCpy(str1, str2);
+    mystrCpy(str2, tmp);
+}
+
+bool isSizeInputCorrect(int input) {
+    return input>=MIN_BOARD_SIZE && input<=MAX_BOARD_SIZE;
+}
+
+void buildLeaderboardFileName(int size, char* buffer) {
+    char num[16];
+    intToString(size, num);
+
+    buffer[0] = '\0';
+    mystrCat(buffer, FILE_PREFIX);
+    mystrCat(buffer, num);
+    mystrCat(buffer, "x");
+    mystrCat(buffer, num);
+    mystrCat(buffer, FILE_EXT);
+}
+
+void sortByScoreDesc(char names[][MAX_USERNAME_SIZE], int scores[], int count) {
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = 0; j < count - 1 - i; j++) {
+            if (scores[j] < scores[j + 1]) {
+                swap(scores[j], scores[j + 1]);
+                swapName(names[j], names[j + 1]);
+            }
+        }
+    }
+}
+
+void updateLeaderboardForSize(int size, const char* playerName, int score) {
+    char filename[FILE_BUF];
+    buildLeaderboardFileName(size, filename);
+
+    char names[MAX_RECORDS][MAX_USERNAME_SIZE];
+    int scores[MAX_RECORDS];
+    int count = 0;
+
+    std::ifstream in(filename);
+    if (in.is_open()) {
+        while (count < MAX_RECORDS && (in >> names[count] >> scores[count])) {
+            count++;
+        }
+        in.close();
+    }
+
+    if (count < MAX_RECORDS) {
+        mystrCpy(names[count], playerName);
+        scores[count] = score;
+        count++;
+    }
+
+    sortByScoreDesc(names, scores, count);
+
+    std::ofstream out(filename, std::ios::trunc);
+    if (out.is_open()) {
+        int limit = (count < TOP_COUNT) ? count : TOP_COUNT;
+        for (int i = 0; i < limit; i++) {
+            out << names[i] << " " << scores[i] << "\n";
+        }
+        out.close();
+    }
+}
+
+void showLeaderboardMenu() {
+    int size;
+    std::cout << "\n--- LEADERBOARD ---\n";
+    std::cout << "Enter board size (4-10): ";
+
+    while (!(std::cin >> size) || !isSizeInputCorrect(size) ) {
+        std::cout << "Invalid size! Try again: ";
+        std::cin.clear();
+        std::cin.ignore(10000, '\n');
+    }
+
+    char filename[FILE_BUF];
+    buildLeaderboardFileName(size, filename);
+
+    std::ifstream in(filename);
+    if (!in.is_open()) {
+        std::cout << "No leaderboard for " << size << "x" << size << " yet.\n";
+    } else {
+        std::cout << "\nTOP " << TOP_COUNT << " (" << size << "x" << size << ")\n";
+        std::cout << "---------------------------\n";
+
+        char name[MAX_USERNAME_SIZE];
+        int score;
+        int rank = 1;
+
+        while (in >> name >> score) {
+            std::cout << rank << ". " << name << " - " << score << "\n";
+            rank++;
+        }
+
+        std::cout << "---------------------------\n";
+        in.close();
+    }
+
+    std::cout << "Press Enter to return...";
+    std::cin.ignore(10000, '\n');
+    std::cin.get();
+}
 
 void clearConsole()
 {
@@ -35,10 +216,6 @@ void mainMenu() {
     std::cout<<"1.Start(s)\n";
     std::cout<<"2.Leaderboard(l)\n";
     std::cout<<"3.Exit(e)\n";
-}
-
-bool isSizeInputCorrect(int input) {
-    return input>=4 && input<=10;
 }
 
 void printBoard(int board[][MAX_BOARD_SIZE], size_t size) {
@@ -328,7 +505,7 @@ bool isGameOver(int board[][MAX_BOARD_SIZE], int size) {
     return true;
 }
 
-void gameLoop(int board[][MAX_BOARD_SIZE], int size) {
+void gameLoop(int board[][MAX_BOARD_SIZE], size_t size, char* username) {
     displayGame(board, size);
 
     while (true) {
@@ -345,8 +522,11 @@ void gameLoop(int board[][MAX_BOARD_SIZE], int size) {
             addRandomTile(board, size);
             displayGame(board, size);
             if (isGameOver(board, size)) {
+                int record=calculateScore(board,size);
                 std::cout << "GAME OVER!\n";
-                std::cout << "Final score:"<< calculateScore(board, size)<<std::endl;
+                std::cout << "Final score:"<<record<<std::endl;
+
+                updateLeaderboardForSize(size, username, record);
                 break;
             }
         } else {
@@ -361,7 +541,7 @@ void startGame() {
     readUsername(username);
     int size=readBoardSize();
     setupNewGame(board,size);
-    gameLoop(board,size);
+    gameLoop(board,size,username);
 }
 
 int main() {
@@ -375,6 +555,7 @@ int main() {
       }
       else if (choice== 'l') {
           std::cout<<"Showing leaderboard..."<<std::endl;
+          showLeaderboardMenu();
       }
       else if (choice== 'e') {
           std::cout<<"Exiting program...";
