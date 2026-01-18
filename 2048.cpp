@@ -233,72 +233,90 @@ void moveDown(int board[][MAX_BOARD_SIZE], int size, bool &moved) {
     }
 }
 
-void startGame() {
+void readUsername(char username[]) {
+    std::cout << "Enter username: ";
     std::cin.ignore();
-    char username[MAX_USERNAME_SIZE];
-    std::cout<<"Enter username:";
-    std::cin.getline(username,MAX_USERNAME_SIZE);
-    std::cout<<"Enter board size (4-10):";
+    std::cin.getline(username, MAX_USERNAME_SIZE);
+}
+
+int readBoardSize() {
     int size;
+    std::cout<<"Enter board size (4-10):";
     std::cin>>size;
-    int board[MAX_BOARD_SIZE][MAX_BOARD_SIZE];
     while (!isSizeInputCorrect(size)) {
         std::cout<<"Invalid option! Please choose a valid one (4-10)!";
         std::cin>>size;
     }
-    if (isSizeInputCorrect(size)){
-        clearBoard(board,size);
-        addRandomTile(board,size);
-        addRandomTile(board,size);
-        printGame(board,size);
-    }
+    return size;
+}
+
+void setupNewGame(int board[][MAX_BOARD_SIZE], size_t size) {
+    clearBoard(board,size);
+    addRandomTile(board,size);
+    addRandomTile(board,size);
+}
+
+bool isMoved(char command,int board[][MAX_BOARD_SIZE],int size) {
+
+    bool moved = false;
+
+    if (command == 'a') moveLeft(board, size, moved);
+    else if (command == 'd') moveRight(board, size, moved);
+    else if (command == 'w') moveUp(board, size, moved);
+    else if (command == 's') moveDown(board, size, moved);
+
+    return moved;
+}
+
+void gameLoop(int board[][MAX_BOARD_SIZE], int size) {
+    printGame(board, size);
+
     while (true) {
         char command;
         std::cout << "Move (w/a/s/d), q to quit: ";
         std::cin >> command;
 
-        if (command == 'q') break;
+        if (command == 'q')
+            break;
 
-        bool moved = false;
-
-        if (command == 'a') moveLeft(board, size, moved);
-        else if (command == 'd') moveRight(board, size, moved);
-        else if (command == 'w') moveUp(board, size, moved);
-        else if (command == 's') moveDown(board, size, moved);
-        else {
-            std::cout << "Invalid command!\n";
-            continue;
-        }
+        bool moved = isMoved(command, board, size);
 
         if (moved) {
             addRandomTile(board, size);
             printGame(board, size);
         } else {
-            std::cout << "No change (invalid move).\n";
+            std::cout << "Invalid move.\n";
         }
     }
 }
 
+void startGame() {
+    char username[MAX_USERNAME_SIZE];
+    int board[MAX_BOARD_SIZE][MAX_BOARD_SIZE];
+    readUsername(username);
+    int size=readBoardSize();
+    setupNewGame(board,size);
+    gameLoop(board,size);
+}
+
 int main() {
-    while (true) {
-        mainMenu();
-        int choice;
-        std::cin>>choice;
+  while (true) {
+      mainMenu();
+      char choice;
+      std::cin>>choice;
 
-        if (choice==1) {
-            startGame();
-        }
-        else if (choice==2) {
-            std::cout<<"Showing leaderboard...";
-        }
-        else if (choice==3) {
-            std::cout<<"Exiting program...";
-            break;
-        }
-        else {
-            std::cout<<"Invalid option! Please try again!";
-        }
-    }
-
-
+      if (choice == 's') {
+          startGame();
+      }
+      else if (choice== 'l') {
+          std::cout<<"Showing leaderboard...";
+      }
+      else if (choice== 'e') {
+          std::cout<<"Exiting program...";
+          break;
+      }
+      else {
+          std::cout<<"Invalid option! Please try again!";
+      }
+  }
 }
