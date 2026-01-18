@@ -88,8 +88,153 @@ void addRandomTile(int board[][MAX_BOARD_SIZE],size_t size) {
     }
 }
 
-int main() {
-    mainMenu();
+bool isTileEmpty(int tile) {
+    return tile==0;
+}
+
+bool canMerge(int tile1, int tile2) {
+    return tile1!=0 && tile1==tile2;
+}
+
+void mergeTiles(int& target, int& source) {
+    target *=2;
+    source=0;
+}
+
+void slideTile(int& to,int& from) {
+    to = from;
+    from=0;
+}
+
+bool slideAndMerge(int &current, int &target) {
+    if (isTileEmpty(target)) {
+        target = current;
+        current = 0;
+        return true;
+    }
+
+    if (canMerge(target, current)) {
+        target *= 2;
+        current = 0;
+        return true;
+    }
+
+    return false;
+}
+
+void moveLeft(int board[][MAX_BOARD_SIZE], int size, bool &moved) {
+    moved = false;
+
+    for (int row = 0; row < size; row++) {
+        for (int col = 1; col < size; col++) {
+            if (isTileEmpty(board[row][col])) continue;
+
+            int curCol = col;
+
+            while (curCol > 0) {
+                if (isTileEmpty(board[row][curCol - 1])) {
+                    slideTile(board[row][curCol - 1], board[row][curCol]);
+                    moved = true;
+                    curCol--;
+                }
+                else if (canMerge(board[row][curCol - 1], board[row][curCol])) {
+                    mergeTiles(board[row][curCol - 1], board[row][curCol]);
+                    moved = true;
+                    break;
+                }
+                else {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void moveRight(int board[][MAX_BOARD_SIZE], int size, bool &moved) {
+    moved = false;
+
+    for (int row = 0; row < size; row++) {
+        for (int col = size - 2; col >= 0; col--) {
+            if (isTileEmpty(board[row][col])) continue;
+
+            int curCol = col;
+
+            while (curCol < size - 1) {
+                if (isTileEmpty(board[row][curCol + 1])) {
+                    slideTile(board[row][curCol + 1], board[row][curCol]);
+                    moved = true;
+                    curCol++;
+                }
+                else if (canMerge(board[row][curCol + 1], board[row][curCol])) {
+                    mergeTiles(board[row][curCol + 1], board[row][curCol]);
+                    moved = true;
+                    break;
+                }
+                else {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void moveUp(int board[][MAX_BOARD_SIZE], int size, bool &moved) {
+    moved = false;
+
+    for (int col = 0; col < size; col++) {
+        for (int row = 1; row < size; row++) {
+            if (isTileEmpty(board[row][col])) continue;
+
+            int curRow = row;
+
+            while (curRow > 0) {
+                if (isTileEmpty(board[curRow - 1][col])) {
+                    slideTile(board[curRow - 1][col], board[curRow][col]);
+                    moved = true;
+                    curRow--;
+                }
+                else if (canMerge(board[curRow - 1][col], board[curRow][col])) {
+                    mergeTiles(board[curRow - 1][col], board[curRow][col]);
+                    moved = true;
+                    break;
+                }
+                else {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void moveDown(int board[][MAX_BOARD_SIZE], int size, bool &moved) {
+    moved = false;
+    for (int col = 0; col < size; col++) {
+        for (int row = size - 2; row >= 0; row--) {
+            if (isTileEmpty(board[row][col])) continue;
+
+            int curRow = row;
+
+            while (curRow < size - 1) {
+                if (isTileEmpty(board[curRow + 1][col])) {
+                    slideTile(board[curRow + 1][col], board[curRow][col]);
+                    moved = true;
+                    curRow++;
+                }
+                else if (canMerge(board[curRow + 1][col], board[curRow][col])) {
+                    mergeTiles(board[curRow + 1][col], board[curRow][col]);
+                    moved = true;
+                    break;
+                }
+                else {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void startGame() {
+    std::cin.ignore();
     char username[MAX_USERNAME_SIZE];
     std::cout<<"Enter username:";
     std::cin.getline(username,MAX_USERNAME_SIZE);
@@ -107,16 +252,52 @@ int main() {
         addRandomTile(board,size);
         printGame(board,size);
     }
-    int choice;
-    std::cin>>choice;
-    switch (choice) {
-        case 1: std::cout<<"Starting game...";
+    while (true) {
+        char command;
+        std::cout << "Move (w/a/s/d), q to quit: ";
+        std::cin >> command;
 
-        case 2: std::cout<<"Showing leaderboard...";
+        if (command == 'q') break;
 
-        case 3: std::cout<<"Exiting program...";
+        bool moved = false;
 
-        default: std::cout<<"Invalid option! Please try again!";
+        if (command == 'a') moveLeft(board, size, moved);
+        else if (command == 'd') moveRight(board, size, moved);
+        else if (command == 'w') moveUp(board, size, moved);
+        else if (command == 's') moveDown(board, size, moved);
+        else {
+            std::cout << "Invalid command!\n";
+            continue;
+        }
+
+        if (moved) {
+            addRandomTile(board, size);
+            printGame(board, size);
+        } else {
+            std::cout << "No change (invalid move).\n";
+        }
+    }
+}
+
+int main() {
+    while (true) {
+        mainMenu();
+        int choice;
+        std::cin>>choice;
+
+        if (choice==1) {
+            startGame();
+        }
+        else if (choice==2) {
+            std::cout<<"Showing leaderboard...";
+        }
+        else if (choice==3) {
+            std::cout<<"Exiting program...";
+            break;
+        }
+        else {
+            std::cout<<"Invalid option! Please try again!";
+        }
     }
 
 
